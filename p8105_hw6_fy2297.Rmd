@@ -13,3 +13,24 @@ library(purrr)
 library(patchwork)
 library(viridis)
 ```
+
+# Problem 2
+```{r}
+# import the data 
+url = "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
+homicide_df = read_csv(url) %>% 
+  janitor::clean_names()
+```
+
+```{r}
+# tidy it according to the requirements
+homicide_df = 
+  homicide_df %>% 
+  mutate(
+    city_state = paste(city, state, sep = ","),
+    disposition = ifelse(disposition == "Closed by arrest", "resolved", "unresolved"),
+    victim_age = as.numeric(victim_age)
+  ) %>% 
+  filter(city_state != "Dallas,TX" & city_state != "Phoenix,AZ" & city_state != "Kansas City,MO" & city_state != "Tulsa,AL") %>% 
+  filter(victim_race == "White" | victim_race == "Black")
+```
