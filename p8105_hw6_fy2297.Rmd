@@ -24,13 +24,48 @@ homicide_df = read_csv(url) %>%
 
 ```{r}
 # tidy it according to the requirements
+# resolved = 1, unresolved = 0
 homicide_df = 
   homicide_df %>% 
   mutate(
     city_state = paste(city, state, sep = ","),
-    disposition = ifelse(disposition == "Closed by arrest", "resolved", "unresolved"),
-    victim_age = as.numeric(victim_age)
+    disposition = ifelse(disposition == "Closed by arrest", 1, 0),
+    victim_age = as.numeric(victim_age),
+    victim_race = fct(victim_race)
   ) %>% 
   filter(city_state != "Dallas,TX" & city_state != "Phoenix,AZ" & city_state != "Kansas City,MO" & city_state != "Tulsa,AL") %>% 
   filter(victim_race == "White" | victim_race == "Black")
 ```
+
+```{r}
+homicide_summary_df = 
+  homicide_df %>% 
+  group_by(city_state) %>% 
+  select(city_state, disposition, victim_age, victim_sex, victim_race)
+```
+
+```{r}
+# Baltimore,MD
+Baltimore_df = 
+  homicide_summary_df %>% 
+  filter(city_state == "Baltimore,MD") 
+  
+ 
+test_Baltimore = 
+  glm(disposition ~ victim_age + victim_sex + victim_race, data = Baltimore_df, family = binomial()) %>%
+  broom::tidy() %>% 
+  mutate(
+    OR = exp(estimate),
+    CI_lower_bound = exp(estimate - 1.96 * std.error),
+    CI_upper_bound = exp(estimate + 1.96 * std.error)
+  ) %>% 
+  select(term, estimate, OR, CI_lower_bound, CI_upper_bound) %>% 
+  knitr::kable(digits = 4)
+test_Baltimore
+
+```
+
+# Problem 3
+
+
+
