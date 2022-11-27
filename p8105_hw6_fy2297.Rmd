@@ -12,6 +12,8 @@ library(httr)
 library(purrr)
 library(patchwork)
 library(viridis)
+library(modelr)
+library(mgcv)
 ```
 
 # Problem 2
@@ -98,6 +100,42 @@ comment of the OR plot:
 New York has the lowest estimated OR and Albuquerque has the highest estimated OR and it also has the widest confidence interval. Some cities like San Bemardino has lower OR than some other cities but it has wider associated confidence interval.
 
 # Problem 3
+```{r}
+# data manipulation
+birth_df =
+  read_csv("birthweight.csv") %>% 
+  janitor::clean_names() %>% 
+  select(bwt, everything()) %>% 
+  drop_na()
+```
+
+```{r}
+# model building
+birth_model = 
+  lm(bwt ~ babysex + momage + ppbmi, data = birth_df) %>% 
+  broom::tidy()
+
+birth_model
+```
+
+```{r}
+# comparison models
+compare_models = 
+  crossv_mc(birth_df,100) %>% 
+  mutate(
+    train = map(train,as_tibble),
+    test = map(test, as_tibble)
+  ) %>% 
+  mutate(
+    model1 = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    model2 = map(train, ~lm(bwt ~ bhead + blength + babysex, data = .x))
+  ) %>% 
+  mutate(
+    rmse_model1 = map2_dbl(model1, test, ~rmse(model =  .x, data = .y)),
+    rmse_model2 = map2_dbl(model2, test, ~rmse(model =  .x, data = .y))
+  )
+```
+modeling process description:
 
 
 
