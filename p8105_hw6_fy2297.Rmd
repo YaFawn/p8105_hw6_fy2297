@@ -145,10 +145,20 @@ model_check_update %>%
 ```
 
 ```{r}
+# find the "best" model continued...
+model_final =
+  lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + momage + mrace + parity + smoken, data = birth_df)
+
+model_final %>% 
+  broom::tidy()
+```
+modeling process description: In order to find the "optimal" model, I first put all variables into the model and find their estimates and p-values. Then, there are some covariates that has NA estimates which are ruled out from the model. Next, build a model with covariates that have actual estimates values, but there are some covariates whose p-values are greater that 0.05 which are also excluded from the final model. Finally, make a model again excluding those covariates(NA estimates and big p-values).
+
+```{r}
 # add predictions and residuals to the model_check_update
 birth_df %>% 
-  add_residuals(model_check_update) %>% 
-  add_predictions(model_check_update) %>% 
+  add_residuals(model_final) %>% 
+  add_predictions(model_final) %>% 
   ggplot(aes(x = pred, y = resid)) + 
   geom_point(alpha = 0.2) +
   geom_line(aes(y = 0), color = "red") +
@@ -186,15 +196,14 @@ compare_models =
   mutate(
     model1_train = map(train, ~lm(bwt ~ blength + gaweeks, data = birth_df)),
     model2_train = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex + bhead * blength * babysex, data = birth_df)),
-    model_check_update_train = map(train, ~lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + ppbmi + ppwt + smoken, data = birth_df))
+    model_final_train = map(train, ~lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + momage + mrace + parity + smoken, data = birth_df))
   ) %>% 
   mutate(
     rmse_model1 = map2_dbl(model1_train, test, ~rmse(model = .x, data = .y)),
     rmse_model2 = map2_dbl(model2_train,  test, ~rmse(model = .x, data = .y)),
-    rmse_model_check_update = map2_dbl(model_check_update_train, test, ~rmse(model = .x, data = .y)),
+    rmse_model_final = map2_dbl(model_final_train, test, ~rmse(model = .x, data = .y)),
   )
 ```
-modeling process description:
 
 ```{r}
 # draw a violin plot to compare three models (some code from lecture)
@@ -209,7 +218,7 @@ compare_models %>%
   mutate(
     model = fct_inorder(model)
   ) %>% 
-  ggplot(aes(x = model, y = rmse,color = model)) + 
+  ggplot(aes(x = model, y = rmse, color = model)) + 
   geom_violin()+
   labs(
     x = "Three Different Models",
@@ -218,7 +227,7 @@ compare_models %>%
   )+
   theme(plot.title = element_text(hjust = .5))
 ```
-comment:
+comment: According to the violin plot, model1 (with "length at birth" and "gestational age" as predictors) has the highest rmse, the one I built (with "babysex", "bhead", "blength", "delwt", "fincome", "gaweeks", "momage", "mrace", "parity", "smoken" as predictors) has the lowest rmse, and model2 (with "head circumference", "length", "sex" and their interaction as predictors) has the second highest rmse. So the efficiency rank of three models (from highest to lowest) is : my model, model 2 and model1.
 
 
 
