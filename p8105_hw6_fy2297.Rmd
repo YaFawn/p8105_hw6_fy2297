@@ -101,12 +101,27 @@ New York has the lowest estimated OR and Albuquerque has the highest estimated O
 
 # Problem 3
 ```{r}
-# data manipulation
+# data manipulation, check for any missing values
 birth_df =
   read_csv("birthweight.csv") %>% 
   janitor::clean_names() %>% 
   select(bwt, everything()) %>% 
   drop_na()
+```
+comment: The size of the birthweight dataset doesn't change before and after dropping the NAs, so there is no missing value in the dataset.
+
+```{r}
+# convert numeric to factor where appropriate
+birth_df %>% 
+  mutate(
+    babysex = as.factor(babysex),
+    frace = as.factor(frace),
+    malform = as.factor(malform),
+    mrace = as.factor(mrace),
+    parity = as.factor(parity),
+    pnumlbw = as.factor(pnumlbw),
+    pnumsga = as.factor(pnumsga)
+  )
 ```
 
 ```{r}
