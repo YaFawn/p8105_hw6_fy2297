@@ -162,6 +162,20 @@ birth_df %>%
 comment: the residuals are basically symmetric around y=0, and centered around the "y=0" line which makes sense.
   
 ```{r}
+# first comparison model
+model1 = lm(bwt ~ blength + gaweeks, data = birth_df) %>% 
+  broom::tidy()
+model1
+```
+
+```{r}
+# second comparison model
+model2 = lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex + bhead * blength * babysex, data = birth_df) %>% 
+  broom::tidy()
+model2
+```
+
+```{r}
 # comparison models
 compare_models = 
   crossv_mc(birth_df,100) %>% 
@@ -170,16 +184,41 @@ compare_models =
     test = map(test, as_tibble)
   ) %>% 
   mutate(
-    model1 = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
-    model2 = map(train, ~lm(bwt ~ bhead + blength + babysex, data = .x))
+    model1_train = map(train, ~lm(bwt ~ blength + gaweeks, data = birth_df)),
+    model2_train = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead * blength + bhead * babysex + blength * babysex + bhead * blength * babysex, data = birth_df)),
+    model_check_update_train = map(train, ~lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + ppbmi + ppwt + smoken, data = birth_df))
   ) %>% 
   mutate(
-    rmse_model1 = map2_dbl(model1, test, ~rmse(model =  .x, data = .y)),
-    rmse_model2 = map2_dbl(model2, test, ~rmse(model =  .x, data = .y))
+    rmse_model1 = map2_dbl(model1_train, test, ~rmse(model = .x, data = .y)),
+    rmse_model2 = map2_dbl(model2_train,  test, ~rmse(model = .x, data = .y)),
+    rmse_model_check_update = map2_dbl(model_check_update_train, test, ~rmse(model = .x, data = .y)),
   )
 ```
 modeling process description:
 
+```{r}
+# draw a violin plot to compare three models (some code from lecture)
+compare_models %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) %>% 
+  mutate(
+    model = fct_inorder(model)
+  ) %>% 
+  ggplot(aes(x = model, y = rmse,color = model)) + 
+  geom_violin()+
+  labs(
+    x = "Three Different Models",
+    y = "rmse",
+    title = "Comparison of Three Models"
+  )+
+  theme(plot.title = element_text(hjust = .5))
+```
+comment:
 
 
 
