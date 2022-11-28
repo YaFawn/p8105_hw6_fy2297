@@ -126,13 +126,41 @@ birth_df %>%
 
 ```{r}
 # model building
-birth_model = 
-  lm(bwt ~ babysex + momage + ppbmi, data = birth_df) %>% 
+# 1st step: put all variables into the model to check the possible coefficients
+model_check = 
+  lm(bwt ~ ., data = birth_df) %>% 
   broom::tidy()
 
-birth_model
+model_check
+```
+comment: variables "pnumlbw", "pnumsga", "wtgain" have no estimate, so we rule them out from the original model and build another model without them.
+
+```{r}
+# find the "best" model 
+model_check_update =
+  lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + ppbmi + ppwt + smoken, data = birth_df)
+
+model_check_update %>% 
+  broom::tidy()
 ```
 
+```{r}
+# add predictions and residuals to the model_check_update
+birth_df %>% 
+  add_residuals(model_check_update) %>% 
+  add_predictions(model_check_update) %>% 
+  ggplot(aes(x = pred, y = resid)) + 
+  geom_point(alpha = 0.2) +
+  geom_line(aes(y = 0), color = "red") +
+  labs(
+    title = "Fitted Values vs Residuals Based on the Built Model",
+    x = "Fitted Values",
+    y = "Residuals"
+    ) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+comment: the residuals are basically symmetric around y=0, and centered around the "y=0" line which makes sense.
+  
 ```{r}
 # comparison models
 compare_models = 
