@@ -16,6 +16,50 @@ library(modelr)
 library(mgcv)
 ```
 
+# Problem 1
+```{r}
+# data manipulation
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+```{r}
+weather_df %>% 
+  modelr::bootstrap(n = 1000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x) ),
+    results = map(models, broom::glance)) %>% 
+  select(-strap, -models) %>% 
+  unnest(results) %>% 
+  ggplot(aes(x = r.squared)) + geom_density()
+```
+
+```{r}
+weather_df %>% 
+  modelr::bootstrap(n = 1000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x) ),
+    results = map(models, broom::tidy)) %>% 
+  select(-strap, -models) %>% 
+  unnest(results) %>% 
+  select(id = `.id`, term, estimate) %>% 
+  pivot_wider(
+    names_from = term, 
+    values_from = estimate) %>% 
+  rename(beta0 = `(Intercept)`, beta1 = tmin) %>% 
+  mutate(log_b0b1 = log(beta0 * beta1)) %>% 
+  ggplot(aes(x = log_b0b1)) + geom_density()
+```
+
 # Problem 2
 ```{r}
 # import the data 
@@ -228,10 +272,6 @@ compare_models %>%
   theme(plot.title = element_text(hjust = .5))
 ```
 comment: According to the violin plot, model1 (with "length at birth" and "gestational age" as predictors) has the highest rmse, the one I built (with "babysex", "bhead", "blength", "delwt", "fincome", "gaweeks", "momage", "mrace", "parity", "smoken" as predictors) has the lowest rmse, and model2 (with "head circumference", "length", "sex" and their interaction as predictors) has the second highest rmse. So the efficiency rank of three models (from highest to lowest) is : my model, model 2 and model1.
-
-
-
-
 
 
 
